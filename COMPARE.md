@@ -4,9 +4,9 @@ This guide provides step-by-step instructions for comparing JSON and SQL impleme
 
 ## Setup
 
-1. Open two terminal windows side by side
-2. In Terminal 1: `cd "c:\Users\rzamora\py\Simple_CRUD_2\JSON todo"`
-3. In Terminal 2: `cd "c:\Users\rzamora\py\Simple_CRUD_2\SQL todo"`
+1. Open two terminal windows side by side (replace with your path)
+2. In Terminal 1: `cd "c:\Users\rzamora\...\JSON todo"`
+3. In Terminal 2: `cd "c:\Users\rzamora\...\SQL todo"`
 4. Run both applications:
    - Terminal 1: `python app.py`
    - Terminal 2: `python app.py`
