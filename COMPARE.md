@@ -1,15 +1,17 @@
 # JSON vs SQL: Hands-on Comparison Guide
 
-This guide provides step-by-step instructions for comparing JSON and SQL implementations of a simple CRUD application. By following these exercises, you'll gain practical understanding of the key differences between file-based storage and relational databases.
+This guide provides step-by-step instructions for comparing JSON, raw SQL, and SQLAlchemy ORM implementations of a simple CRUD application. By following these exercises, you'll gain practical understanding of the key differences between file-based storage, direct database access, and using an ORM layer.
 
 ## Setup
 
-1. Open two terminal windows side by side (replace with your path)
+1. Open three terminal windows side by side (replace with your path)
 2. In Terminal 1: `cd "c:\Users\rzamora\...\JSON todo"`
 3. In Terminal 2: `cd "c:\Users\rzamora\...\SQL todo"`
-4. Run both applications:
+4. In Terminal 3: `cd "c:\Users\rzamora\...\ORM_sql_alchemy"`
+5. Run all applications:
    - Terminal 1: `python app.py`
    - Terminal 2: `python app.py`
+   - Terminal 3: `python app.py`
 
 ## Exercise 1: Basic CRUD Operations
 
@@ -18,10 +20,13 @@ This guide provides step-by-step instructions for comparing JSON and SQL impleme
    - Enter title: "Complete homework"
 2. **SQL** (Terminal 2): Select option `2` to add an item
    - Enter the same title: "Complete homework"
+3. **SQLAlchemy ORM** (Terminal 3): Select option `2` to add an item
+   - Enter the same title: "Complete homework"
 
 ### Read
 1. **JSON**: Select option `1` to list all items
 2. **SQL**: Select option `1` to list all items
+3. **SQLAlchemy ORM**: Select option `1` to list all items
 
 ### Update
 1. **JSON**: Select option `4` to edit an item
@@ -30,11 +35,16 @@ This guide provides step-by-step instructions for comparing JSON and SQL impleme
 2. **SQL**: Select option `4` to edit an item
    - Enter ID: `1`
    - New title: "Complete math homework"
+3. **SQLAlchemy ORM**: Select option `4` to edit an item
+   - Enter ID: `1`
+   - New title: "Complete math homework"
 
 ### Toggle Status
 1. **JSON**: Select option `3` to toggle completion status
    - Enter ID: `1`
 2. **SQL**: Select option `3` to toggle completion status
+   - Enter ID: `1`
+3. **SQLAlchemy ORM**: Select option `3` to toggle completion status
    - Enter ID: `1`
 
 ### Delete
@@ -42,42 +52,48 @@ This guide provides step-by-step instructions for comparing JSON and SQL impleme
    - Enter ID: `1`
 2. **SQL**: Select option `5` to delete an item
    - Enter ID: `1`
+3. **SQLAlchemy ORM**: Select option `5` to delete an item
+   - Enter ID: `1`
 
 **Learning Points:**
-- Basic operations work similarly in both implementations
-- Notice any differences in feedback messages or behavior
+- Basic operations work similarly across all three implementations
+- Notice differences in feedback messages between manual SQL and ORM
+- SQLAlchemy demonstrates how ORMs provide the same constraints with higher-level syntax
 
 ## Exercise 2: ID Management
 
-1. Add three items to both applications:
+1. Add three items to all three applications:
    - "Buy groceries"
    - "Call doctor"
    - "Pay bills"
 
 2. Verify IDs:
-   - Both should have items with IDs 2, 3, 4 (or similar sequence)
+   - All should have items with IDs 2, 3, 4 (or similar sequence)
 
-3. Delete the middle item (ID 3) in both applications:
+3. Delete the middle item (ID 3) in each application:
    - **JSON**: Select option `5`, enter ID `3`
    - **SQL**: Select option `5`, enter ID `3`
+   - **SQLAlchemy ORM**: Select option `5`, enter ID `3`
 
-4. Add a new item to both:
+4. Add a new item to each:
    - "New task"
 
-5. Check the ID of the new item:
    - **JSON**: Should reuse ID 3 (the first available ID)
    - **SQL**: Should use ID 5 (never reuses IDs)
+   - **SQLAlchemy ORM**: Should use ID 5 (the ORM still relies on AUTOINCREMENT)
 
 **Learning Points:**
 - JSON implementation reuses IDs to keep a compact sequence
 - SQL with AUTOINCREMENT never reuses IDs once assigned
-- SQL approach is better for data integrity and referential integrity
+- SQLAlchemy ORM still depends on the database's AUTOINCREMENT behavior
+- Database-backed approaches are better for data integrity and referential integrity
 
 ## Exercise 3: Uniqueness Constraints
 
-1. Try adding an item with the same title in both applications:
+1. Try adding an item with the same title in all applications:
    - **JSON**: Add "Buy groceries" (already exists)
    - **SQL**: Add "Buy groceries" (already exists)
+   - **SQLAlchemy ORM**: Add "Buy groceries" (already exists)
 
 2. Observe the different behaviors:
    - **JSON**: Custom code checks for duplicates
@@ -85,22 +101,24 @@ This guide provides step-by-step instructions for comparing JSON and SQL impleme
 
 **Learning Points:**
 - SQL has built-in data integrity constraints
+- SQLAlchemy exposes those constraints through exceptions (e.g., `IntegrityError`)
 - In JSON, we must implement constraints manually
 - Database constraints are more reliable and consistent
 
 ## Exercise 4: Search Performance
 
-1. Add more items to both applications using bulk insert:
-   - Select option `7` in both terminals
+1. Add more items to all applications using bulk insert:
+   - Select option `7` in each terminal
    - Enter `50` as the number of items to add
 
-2. Search for a term in both applications:
-   - Select option `6` in both terminals
+2. Search for a term in all applications:
+   - Select option `6` in each terminal
    - Enter search term: "item"
 
 3. Compare the search results and execution times:
    - **JSON**: Must loop through all items in memory
    - **SQL**: Uses database engine's optimized search
+   - **SQLAlchemy ORM**: Translates `contains()` into efficient SQL LIKE queries
 
 **Learning Points:**
 - For small datasets, performance difference may be minimal
@@ -109,15 +127,16 @@ This guide provides step-by-step instructions for comparing JSON and SQL impleme
 
 ## Exercise 5: Bulk Insert Performance
 
-1. Clear both applications (restart them)
+1. Clear all applications (restart them)
 
 2. Use bulk insert to add a large number of items:
-   - Select option `7` in both terminals
+   - Select option `7` in each terminal
    - Enter `500` as the number of items to add
 
 3. Compare execution times:
    - **JSON**: Gets slower as the file grows
    - **SQL**: Maintains consistent performance with transactions
+   - **SQLAlchemy ORM**: Uses one transaction via session commit but adds minimal overhead
 
 4. Try an even larger number (if time permits):
    - Select option `7` in both terminals
@@ -131,18 +150,19 @@ This guide provides step-by-step instructions for comparing JSON and SQL impleme
 
 ## Exercise 6: Data Integrity
 
-1. Restart both applications
+1. Restart all applications
 
 2. Start a bulk insert with a large number:
-   - Select option `7` in both terminals
+   - Select option `7` in each terminal
    - Enter `1000` as the number of items
 
 3. While items are being added, interrupt one or both applications:
    - Press Ctrl+C to terminate the process
 
-4. Restart both applications and check the data:
+4. Restart all applications and check the data:
    - **JSON**: May have partial data (some items added, some not)
    - **SQL**: Transaction ensures either all items are added or none
+   - **SQLAlchemy ORM**: Session commit wraps operations in a transaction for all-or-nothing behavior
 
 **Learning Points:**
 - SQL transactions provide atomicity (all-or-nothing operations)
@@ -151,14 +171,15 @@ This guide provides step-by-step instructions for comparing JSON and SQL impleme
 
 ## Exercise 7: Listing Large Datasets
 
-1. Make sure both applications have a large number of items (500+)
+1. Make sure all applications have a large number of items (500+)
 
-2. Use the list function in both applications:
-   - Select option `1` in both terminals
+2. Use the list function in all applications:
+   - Select option `1` in each terminal
 
 3. Observe the behavior:
    - **JSON**: Must load all items into memory before displaying
    - **SQL**: Can retrieve items in batches (though not implemented in this demo)
+   - **SQLAlchemy ORM**: Can leverage lazy loading and query limits (not implemented in this demo)
 
 **Learning Points:**
 - JSON requires loading the entire dataset into memory
@@ -166,7 +187,7 @@ This guide provides step-by-step instructions for comparing JSON and SQL impleme
 
 ## Conclusion
 
-After completing these exercises, you should have a practical understanding of the key differences between JSON and SQL approaches:
+After completing these exercises, you should have a practical understanding of the key differences between JSON, SQL, and SQLAlchemy approaches:
 
 1. **ID Management**:
    - JSON: Reuses IDs to maintain a compact sequence
@@ -175,25 +196,31 @@ After completing these exercises, you should have a practical understanding of t
 2. **Data Integrity**:
    - JSON: Manual implementation of constraints and validation
    - SQL: Built-in constraints (UNIQUE, NOT NULL, etc.)
+   - SQLAlchemy: Surfaces database constraints through Python exceptions
 
 3. **Performance**:
    - JSON: Degrades as dataset grows, loads everything into memory
    - SQL: More consistent performance, only loads what's needed
+   - SQLAlchemy: Adds a thin abstraction with negligible overhead while still benefiting from SQL performance
 
 4. **Transactions**:
    - JSON: No built-in transaction support
    - SQL: ACID transactions ensure data integrity
+   - SQLAlchemy: Session management simplifies transaction handling
 
 5. **Search Efficiency**:
    - JSON: Linear search through all items
    - SQL: Optimized search algorithms, can use indexes
+   - SQLAlchemy: High-level query helpers compile down to efficient SQL
 
 6. **Scalability**:
    - JSON: Good for small datasets, simple applications
    - SQL: Better for larger datasets, complex applications
+   - SQLAlchemy: Enables scalable patterns (relationships, eager/lazy loading) as apps grow
 
 7. **Implementation Complexity**:
    - JSON: Simpler to implement for basic needs
    - SQL: More complex but provides more features and safeguards
+   - SQLAlchemy: Adds an abstraction layer that increases setup slightly but improves developer ergonomics and maintainability
 
 These differences illustrate why most production applications use databases rather than file-based storage for data that requires CRUD operations, especially as the application grows in complexity and scale.
