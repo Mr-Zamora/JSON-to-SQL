@@ -1,40 +1,188 @@
-# JSON vs SQL: Hands-on Comparison Guide
+# CSV → JSON → SQL → ORM: Hands-on Comparison Guide
 
-This guide provides step-by-step instructions for comparing JSON, raw SQL, and SQLAlchemy ORM implementations of a simple CRUD application. By following these exercises, you'll gain practical understanding of the key differences between file-based storage, direct database access, and using an ORM layer.
+This guide compares four implementations of the same To-Do app. Every version has the same menu and features; only the way data is stored changes.
+
+- **Part A: CSV vs JSON.** Start from a format you already know. The CSV and JSON apps share identical logic, so every difference you see comes from the file format alone.
+- **Part B: JSON vs SQL vs SQLAlchemy ORM.** Move from files to a real database, then to a database accessed through Python objects.
 
 ## Setup
 
-1. Install dependencies from the repository root: `pip install -r requirements.txt`
-2. Open three terminal windows side by side, each in the repository root (`JSON-to-SQL/`)
-3. In Terminal 1: `cd json_todo_starter`
-4. In Terminal 2: `cd sql_todo_starter`
-5. In Terminal 3: `cd ORM_sql_alchemy`
-6. Run all applications:
-   - Terminal 1: `python app.py`
-   - Terminal 2: `python app.py`
-   - Terminal 3: `python app.py`
+Install dependencies once, from the repository root (`JSON-to-SQL/`):
+
+```bash
+pip install -r requirements.txt
+```
+
+Each part tells you which apps to open. Run each app in its own terminal window, from inside its folder, with `python app.py`.
 
 ## Resetting the Data
 
-All three apps save to disk, so **restarting an app does NOT clear its data**. Whenever an exercise says "reset", quit all three apps (option `8`) and then, from the repository root:
+Every app saves to disk, so **restarting an app does NOT clear its data**. Whenever an exercise says "reset", quit the apps (option `8`) and then, from the repository root:
 
+- **CSV**: replace the contents of `csv_todo_starter/todos.csv` with just the header line `id,title,done`
 - **JSON**: replace the contents of `json_todo_starter/todos.json` with `[]`
 - **SQL**: delete `sql_todo_starter/todos.db`
 - **SQLAlchemy ORM**: delete `ORM_sql_alchemy/todos.db`
 
 ```bash
 # macOS / Linux / Git Bash
+echo id,title,done > csv_todo_starter/todos.csv
 echo [] > json_todo_starter/todos.json
 rm -f sql_todo_starter/todos.db ORM_sql_alchemy/todos.db
 ```
 
 ```powershell
 # Windows PowerShell
+Set-Content csv_todo_starter/todos.csv "id,title,done"
 Set-Content json_todo_starter/todos.json "[]"
 Remove-Item sql_todo_starter/todos.db, ORM_sql_alchemy/todos.db -ErrorAction SilentlyContinue
 ```
 
-The apps recreate empty storage on the next run. Reset before Exercise 1 so all three start from the same state.
+The apps recreate empty storage on the next run. Reset before starting each part so all apps begin from the same state.
+
+---
+
+# Part A: CSV vs JSON
+
+### Setup
+1. Reset the data
+2. Terminal 1: `cd csv_todo_starter` then `python app.py`
+3. Terminal 2: `cd json_todo_starter` then `python app.py`
+4. Keep a third terminal free for the Python experiments in Exercises A2 and A3
+
+## Exercise A1: Same App, Different File
+
+1. In **both** apps, add two items (option `2`):
+   - "Buy groceries"
+   - "Call doctor"
+2. In both apps, toggle item `1` to done (option `3`)
+3. Open `csv_todo_starter/todos.csv` and `json_todo_starter/todos.json` in VS Code and compare them:
+
+   ```
+   id,title,done
+   1,Buy groceries,True
+   2,Call doctor,False
+   ```
+
+   ```json
+   [
+     {
+       "id": 1,
+       "title": "Buy groceries",
+       "done": true
+     },
+     {
+       "id": 2,
+       "title": "Call doctor",
+       "done": false
+     }
+   ]
+   ```
+
+4. Compare the code: in VS Code, right-click `csv_todo_starter/app.py` → **Select for Compare**, then right-click `json_todo_starter/app.py` → **Compare with Selected**. Almost all the differences are in `load_data()` and `save_data()`.
+
+**Learning Points:**
+- CSV is a **table**: the column names appear once, in the header row, and each line is a row
+- JSON is a **list of objects**: `[ ]` is a list, `{ }` is an object, and each object has `"key": value` pairs
+- JSON repeats the field names on every item. The file is bigger, but each item describes itself
+- `true`/`false` in JSON are real true/false values, not text
+
+## Exercise A2: Commas in Titles
+
+1. In both apps, add the item: "Milk, eggs"
+2. Look at both files again:
+   - **CSV**: `3,"Milk, eggs",False`. The title had to be wrapped in quotes, otherwise its comma would look like a new column
+   - **JSON**: `"title": "Milk, eggs"`. Every string in JSON is already in quotes, so commas are never confusing
+3. See what happens if you read the CSV the "simple" way. In your third terminal, `cd csv_todo_starter`, start Python with `python`, and type:
+
+   ```python
+   >>> [line.split(",") for line in open("todos.csv").read().splitlines()]
+   [['id', 'title', 'done'], ['1', 'Buy groceries', 'True'], ['2', 'Call doctor', 'False'], ['3', '"Milk', ' eggs"', 'False']]
+   ```
+
+   Row 3 has split into **four** pieces instead of three.
+
+**Learning Points:**
+- Splitting CSV lines on `,` breaks as soon as the data contains a comma
+- Python's `csv` module (used in the app) understands the quoting rules, which is why the app still works
+- JSON's syntax has no such ambiguity: strings are always quoted
+
+## Exercise A3: Everything in CSV Is Text
+
+1. Still in the Python prompt inside `csv_todo_starter`, type:
+
+   ```python
+   >>> import csv
+   >>> rows = list(csv.DictReader(open("todos.csv", newline="")))
+   >>> rows[1]
+   {'id': '2', 'title': 'Call doctor', 'done': 'False'}
+   >>> bool(rows[1]["done"])
+   True
+   ```
+
+   `id` is the text `'2'`, not the number `2`, and `done` is the text `'False'`. Worse, `bool('False')` is `True`, because any non-empty text counts as true.
+
+2. Type `exit()`, then `cd ../json_todo_starter`, start `python` again, and type:
+
+   ```python
+   >>> import json
+   >>> items = json.load(open("todos.json"))
+   >>> items[1]
+   {'id': 2, 'title': 'Call doctor', 'done': False}
+   >>> type(items[1]["done"])
+   <class 'bool'>
+   ```
+
+   JSON gives back a real number and a real `False`.
+
+3. Open `csv_todo_starter/app.py` and find `load_data()`. Notice the lines that convert each value: `int(row["id"])` and `row["done"] == "True"`.
+
+4. **Try it:** change `row["done"] == "True"` to `bool(row["done"])`, save, restart the CSV app and list the items. Every item now shows as done (✓). Change it back afterwards.
+
+**Learning Points:**
+- CSV has no types: every value is text, and the program must convert it correctly
+- Getting the conversion wrong produces bugs that don't crash, so they're easy to miss
+- JSON keeps text, numbers, `true`/`false` and `null` as different types
+
+## Exercise A4: Opening the File in Excel (Windows, if Excel is installed)
+
+1. Open `csv_todo_starter/todos.csv` in Excel and leave it open
+2. In the CSV app, add a new item
+3. The app crashes with `PermissionError`: Excel has locked the file, so Python can't write to it, and the item you just added is lost
+4. Close Excel, restart the CSV app and add the item again; it works now
+
+**Learning Points:**
+- A file is hard to share: only one program can safely write to it at a time
+- Being able to open the data in Excel is convenient, but it can block or even change the data (Excel may reformat values when saving)
+- Databases (Part B) are designed so many users and programs can safely read and write the same data at once
+
+## Part A Summary
+
+| | CSV | JSON |
+|---|---|---|
+| Shape | Table: rows and columns | List of objects (can also nest lists inside objects) |
+| Types | Everything is text; you convert it yourself | Text, numbers, `true`/`false`, `null` |
+| Field names | Once, in the header | On every item |
+| Commas and quotes in data | Quoting rules (use the `csv` module) | Strings always quoted |
+| Common use | Spreadsheets, data export | Web APIs, JavaScript, config files |
+
+**What CSV and JSON share** (and what Part B fixes):
+- The whole file is loaded into memory and rewritten on every change
+- Rules like "no duplicate titles" must be written by hand in Python
+- No protection if the program crashes while writing the file
+- Only one program can safely write at a time
+
+JSON is the format web browsers and web APIs use to send data, which is why it matters in web programming. But it is still just a file. Part B shows what a database adds.
+
+---
+
+# Part B: JSON vs SQL vs SQLAlchemy ORM
+
+### Setup
+1. Reset the data
+2. Terminal 1: `cd json_todo_starter` then `python app.py`
+3. Terminal 2: `cd sql_todo_starter` then `python app.py`
+4. Terminal 3: `cd ORM_sql_alchemy` then `python app.py`
 
 ## Exercise 1: Basic CRUD Operations
 
