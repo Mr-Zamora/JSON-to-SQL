@@ -15,6 +15,7 @@ Base = declarative_base()
 
 class Todo(Base):
     __tablename__ = "todos"
+    __table_args__ = {"sqlite_autoincrement": True}
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     title = Column(String, nullable=False, unique=True)

@@ -16,8 +16,8 @@ All implementations provide identical functionality but differ in their underlyi
 
 ### Prerequisites
 
-- Python 3.6 or higher
-- SQLAlchemy 1.4+ (install with `pip install sqlalchemy`)
+- Python 3.7 or higher
+- SQLAlchemy 1.4+ (listed in `requirements.txt`)
 - Built-in `json` and `sqlite3` modules (included with Python)
 
 ### Running the Applications
@@ -28,23 +28,46 @@ All implementations provide identical functionality but differ in their underlyi
    cd JSON-to-SQL
    ```
 
-2. Run the JSON implementation:
+2. Install dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+3. Run the JSON implementation:
    ```bash
    cd json_todo_starter
    python app.py
    ```
 
-3. Run the SQL implementation:
+4. Run the SQL implementation:
    ```bash
    cd sql_todo_starter
    python app.py
    ```
 
-4. Run the SQLAlchemy implementation:
+5. Run the SQLAlchemy implementation:
    ```bash
    cd ORM_sql_alchemy
    python app.py
    ```
+
+### Resetting the Data
+
+All three apps save to disk, so **restarting an app does not clear its data**. To start fresh, quit the apps and from the repository root:
+
+```bash
+# macOS / Linux / Git Bash
+echo [] > json_todo_starter/todos.json
+rm -f sql_todo_starter/todos.db ORM_sql_alchemy/todos.db
+```
+
+```powershell
+# Windows PowerShell
+Set-Content json_todo_starter/todos.json "[]"
+Remove-Item sql_todo_starter/todos.db, ORM_sql_alchemy/todos.db -ErrorAction SilentlyContinue
+```
+
+> **Upgrading from an earlier version?** Delete any existing `ORM_sql_alchemy/todos.db`. Databases created before the `sqlite_autoincrement` fix were built without `AUTOINCREMENT` and will still reuse IDs.
 
 ## 🔍 Repository Structure
 
@@ -52,6 +75,7 @@ All implementations provide identical functionality but differ in their underlyi
 JSON-to-SQL/
 ├── COMPARE.md            # Detailed comparison guide with exercises
 ├── README.md             # This file
+├── requirements.txt      # Python dependencies (SQLAlchemy)
 ├── json_todo_starter/    # JSON implementation
 │   ├── app.py           # Main application code
 │   └── todos.json       # JSON data storage file
@@ -83,20 +107,30 @@ All implementations include:
 ### 2. ID Management
 - **JSON**: Reuses IDs to maintain a compact sequence
 - **SQL**: Never reuses IDs once assigned (AUTOINCREMENT)
-- **SQLAlchemy**: Relies on the database AUTOINCREMENT behavior
+- **SQLAlchemy**: Relies on the database AUTOINCREMENT behavior (on SQLite this requires `__table_args__ = {"sqlite_autoincrement": True}`; `autoincrement=True` on the column alone does not emit the keyword)
 
 ### 3. Data Integrity
-- **JSON**: Manual implementation of constraints and validation
+- **JSON**: Manual implementation of constraints and validation, which is easy to miss (the JSON bulk insert skips the duplicate check)
 - **SQL**: Built-in constraints (UNIQUE, NOT NULL, etc.)
 - **SQLAlchemy**: Surfaces database constraint violations as Python exceptions
 
 ### 4. Performance
 - **JSON**: Degrades as dataset grows, loads everything into memory
 - **SQL**: More consistent performance, only loads what's needed
-- **SQLAlchemy**: Thin abstraction over SQL with similar performance characteristics
+- **SQLAlchemy**: Thin abstraction over SQL; slower than raw SQL but scales evenly
+
+Differences only show at scale. Sample bulk insert timings (fresh data each run):
+
+| Items | JSON | SQL | SQLAlchemy |
+|---|---|---|---|
+| 500 | 0.014 s | 0.008 s | 0.030 s |
+| 5,000 | 2.04 s | 0.023 s | 0.24 s |
+| 10,000 | 9.18 s | 0.040 s | 0.46 s |
+
+The JSON slowdown is O(n²): `next_id()` rebuilds the full set of IDs for every new item.
 
 ### 5. Transactions
-- **JSON**: No built-in transaction support
+- **JSON**: No built-in transaction support; a crash while the file is being written can leave it truncated and lose all data
 - **SQL**: ACID transactions ensure data integrity
 - **SQLAlchemy**: Manages transactions via sessions and commits
 
@@ -122,7 +156,7 @@ The repository includes a comprehensive guide (`COMPARE.md`) with step-by-step e
 6. Data Integrity
 7. Listing Large Datasets
 
-Follow these exercises to gain practical insights into when to use each approach.
+Follow these exercises to gain practical insights into when to use each approach. Reset the data (see above) before Exercise 1 and wherever the guide says so, so all three apps start from the same state.
 
 ## 🧪 Implementation Details
 
@@ -170,6 +204,7 @@ SessionLocal = sessionmaker(bind=engine, future=True)
 
 class Todo(Base):
     __tablename__ = "todos"
+    __table_args__ = {"sqlite_autoincrement": True}  # emit AUTOINCREMENT so IDs are never reused
     id = Column(Integer, primary_key=True, autoincrement=True)
     title = Column(String, nullable=False, unique=True)
     done = Column(Integer, nullable=False, default=0)

@@ -52,8 +52,8 @@ def toggle_done():
         print("Enter a number.")
         return
     with connect() as con:
-        con.execute("UPDATE todos SET done = CASE done WHEN 0 THEN 1 ELSE 0 END WHERE id = ?", (i,))
-        if con.total_changes:
+        cur = con.execute("UPDATE todos SET done = CASE done WHEN 0 THEN 1 ELSE 0 END WHERE id = ?", (i,))
+        if cur.rowcount:
             print("Toggled.")
         else:
             print("Id not found.")

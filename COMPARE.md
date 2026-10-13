@@ -4,14 +4,37 @@ This guide provides step-by-step instructions for comparing JSON, raw SQL, and S
 
 ## Setup
 
-1. Open three terminal windows side by side (replace with your path)
-2. In Terminal 1: `cd "c:\Users\rzamora\...\JSON todo"`
-3. In Terminal 2: `cd "c:\Users\rzamora\...\SQL todo"`
-4. In Terminal 3: `cd "c:\Users\rzamora\...\ORM_sql_alchemy"`
-5. Run all applications:
+1. Install dependencies from the repository root: `pip install -r requirements.txt`
+2. Open three terminal windows side by side, each in the repository root (`JSON-to-SQL/`)
+3. In Terminal 1: `cd json_todo_starter`
+4. In Terminal 2: `cd sql_todo_starter`
+5. In Terminal 3: `cd ORM_sql_alchemy`
+6. Run all applications:
    - Terminal 1: `python app.py`
    - Terminal 2: `python app.py`
    - Terminal 3: `python app.py`
+
+## Resetting the Data
+
+All three apps save to disk, so **restarting an app does NOT clear its data**. Whenever an exercise says "reset", quit all three apps (option `8`) and then, from the repository root:
+
+- **JSON**: replace the contents of `json_todo_starter/todos.json` with `[]`
+- **SQL**: delete `sql_todo_starter/todos.db`
+- **SQLAlchemy ORM**: delete `ORM_sql_alchemy/todos.db`
+
+```bash
+# macOS / Linux / Git Bash
+echo [] > json_todo_starter/todos.json
+rm -f sql_todo_starter/todos.db ORM_sql_alchemy/todos.db
+```
+
+```powershell
+# Windows PowerShell
+Set-Content json_todo_starter/todos.json "[]"
+Remove-Item sql_todo_starter/todos.db, ORM_sql_alchemy/todos.db -ErrorAction SilentlyContinue
+```
+
+The apps recreate empty storage on the next run. Reset before Exercise 1 so all three start from the same state.
 
 ## Exercise 1: Basic CRUD Operations
 
@@ -67,25 +90,27 @@ This guide provides step-by-step instructions for comparing JSON, raw SQL, and S
    - "Call doctor"
    - "Pay bills"
 
-2. Verify IDs:
-   - All should have items with IDs 2, 3, 4 (or similar sequence)
+2. List items (option `1`) and compare the IDs. Exercise 1 already used and deleted ID 1:
+   - **JSON**: IDs 1, 2, 3 (ID 1 was free again, so it is reused)
+   - **SQL**: IDs 2, 3, 4 (ID 1 is never handed out again)
+   - **SQLAlchemy ORM**: IDs 2, 3, 4 (same as SQL)
 
-3. Delete the middle item (ID 3) in each application:
-   - **JSON**: Select option `5`, enter ID `3`
+3. Delete the middle item, "Call doctor", in each application. Its ID differs per app:
+   - **JSON**: Select option `5`, enter ID `2`
    - **SQL**: Select option `5`, enter ID `3`
    - **SQLAlchemy ORM**: Select option `5`, enter ID `3`
 
 4. Add a new item to each:
    - "New task"
 
-   - **JSON**: Should reuse ID 3 (the first available ID)
+   - **JSON**: Should reuse ID 2 (the first available ID)
    - **SQL**: Should use ID 5 (never reuses IDs)
    - **SQLAlchemy ORM**: Should use ID 5 (the ORM still relies on AUTOINCREMENT)
 
 **Learning Points:**
 - JSON implementation reuses IDs to keep a compact sequence
 - SQL with AUTOINCREMENT never reuses IDs once assigned
-- SQLAlchemy ORM still depends on the database's AUTOINCREMENT behavior
+- SQLAlchemy ORM still depends on the database's AUTOINCREMENT behavior. On SQLite this must be requested explicitly with `__table_args__ = {"sqlite_autoincrement": True}`; `autoincrement=True` on the column alone does not emit the `AUTOINCREMENT` keyword
 - Database-backed approaches are better for data integrity and referential integrity
 
 ## Exercise 3: Uniqueness Constraints
@@ -102,7 +127,7 @@ This guide provides step-by-step instructions for comparing JSON, raw SQL, and S
 **Learning Points:**
 - SQL has built-in data integrity constraints
 - SQLAlchemy exposes those constraints through exceptions (e.g., `IntegrityError`)
-- In JSON, we must implement constraints manually
+- In JSON, we must implement constraints manually, and remember to do it everywhere. Look at `bulk_insert()` in the JSON app: it does not check for duplicates. Running bulk add twice in JSON creates duplicate titles, while SQL and SQLAlchemy refuse
 - Database constraints are more reliable and consistent
 
 ## Exercise 4: Search Performance
@@ -127,46 +152,51 @@ This guide provides step-by-step instructions for comparing JSON, raw SQL, and S
 
 ## Exercise 5: Bulk Insert Performance
 
-1. Clear all applications (restart them)
+1. Reset all applications (see "Resetting the Data" above). Otherwise the bulk titles from Exercise 4 already exist and SQL/SQLAlchemy will reject the batch with a UNIQUE constraint error
 
-2. Use bulk insert to add a large number of items:
+2. Use bulk insert to add a small number of items:
    - Select option `7` in each terminal
    - Enter `500` as the number of items to add
+   - At this size JSON may actually be the fastest! Small datasets hide the differences
 
-3. Compare execution times:
-   - **JSON**: Gets slower as the file grows
-   - **SQL**: Maintains consistent performance with transactions
-   - **SQLAlchemy ORM**: Uses one transaction via session commit but adds minimal overhead
+3. Reset again, then bulk insert a larger number:
+   - Select option `7` in each terminal
+   - Enter `5000` as the number of items
 
-4. Try an even larger number (if time permits):
-   - Select option `7` in both terminals
-   - Enter `1000` as the number of items
+4. Reset again, then try `10000` items and compare execution times:
+   - **JSON**: Gets dramatically slower (roughly 4x the time for 2x the items)
+   - **SQL**: Stays fast with a single transaction
+   - **SQLAlchemy ORM**: Uses one transaction via session commit; a little slower than raw SQL but scales evenly
 
 **Learning Points:**
-- JSON performance degrades as the dataset grows
+- JSON performance degrades as the dataset grows. Here this is made worse by `next_id()`, which rebuilds the set of all IDs for every new item (an O(n²) algorithm)
 - SQL with transactions maintains more consistent performance
 - JSON loads the entire dataset into memory
 - SQL only loads what's needed for each operation
 
 ## Exercise 6: Data Integrity
 
-1. Restart all applications
+1. Reset all applications, then add a couple of normal items to each (e.g. "Buy groceries")
 
 2. Start a bulk insert with a large number:
    - Select option `7` in each terminal
-   - Enter `1000` as the number of items
+   - Enter `10000` as the number of items (JSON takes several seconds, giving you time to interrupt it; SQL may finish before you can react)
 
-3. While items are being added, interrupt one or both applications:
+3. While items are being added, interrupt the application:
    - Press Ctrl+C to terminate the process
 
-4. Restart all applications and check the data:
-   - **JSON**: May have partial data (some items added, some not)
+4. Restart the applications and list the data (option `1`):
+   - **JSON**: None of the bulk items were saved, and your earlier items are still there. This app builds the list in memory and writes the file once at the end, so an interruption *before* the write loses the whole batch
    - **SQL**: Transaction ensures either all items are added or none
    - **SQLAlchemy ORM**: Session commit wraps operations in a transaction for all-or-nothing behavior
 
+5. Discuss: what if the program crashed *while* `json.dump()` was writing the file?
+   - Opening the file with `"w"` empties it immediately, so a crash mid-write leaves a truncated, invalid JSON file, which means **all** data is lost, not just the new batch
+   - SQLite uses a journal file, so a crash during a write rolls back to the last committed state; the database is never left half-written
+
 **Learning Points:**
 - SQL transactions provide atomicity (all-or-nothing operations)
-- JSON file operations lack transaction support
+- JSON "all-or-nothing" here is accidental (one write at the end); the file itself has no protection against corruption
 - Database transactions are crucial for data integrity
 
 ## Exercise 7: Listing Large Datasets
