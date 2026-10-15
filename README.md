@@ -76,7 +76,7 @@ Set-Content json_todo_starter/todos.json "[]"
 Remove-Item sql_todo_starter/todos.db, ORM_sql_alchemy/todos.db -ErrorAction SilentlyContinue
 ```
 
-> **Upgrading from an earlier version?** Delete any existing `ORM_sql_alchemy/todos.db`. Databases created before the `sqlite_autoincrement` fix were built without `AUTOINCREMENT` and will still reuse IDs.
+> **Upgrading from an earlier version?** Delete any existing `ORM_sql_alchemy/todos.db`. Databases created before the `sqlite_autoincrement` fix were built without `AUTOINCREMENT`, so the ID of the most recently added row can still be reused if that row is deleted.
 
 ## 🔍 Repository Structure
 

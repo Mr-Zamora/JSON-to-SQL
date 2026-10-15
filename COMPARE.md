@@ -202,13 +202,13 @@ JSON is the format web browsers and web APIs use to send data, which is why it m
 ### Update
 1. **JSON**: Select option `4` to edit an item
    - Enter ID: `1`
-   - New title: "Complete math homework"
+   - New title: "Complete maths homework"
 2. **SQL**: Select option `4` to edit an item
    - Enter ID: `1`
-   - New title: "Complete math homework"
+   - New title: "Complete maths homework"
 3. **SQLAlchemy ORM**: Select option `4` to edit an item
    - Enter ID: `1`
-   - New title: "Complete math homework"
+   - New title: "Complete maths homework"
 
 ### Toggle Status
 1. **JSON**: Select option `3` to toggle completion status
